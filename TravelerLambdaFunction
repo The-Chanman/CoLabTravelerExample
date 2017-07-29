@@ -1,0 +1,391 @@
+'use strict';
+
+
+// --------------- Helpers that build all of the responses -----------------------
+
+function buildSpeechletResponse(title, output, repromptText, shouldEndSession) {
+    return {
+        outputSpeech: {
+            type: 'PlainText',
+            text: output,
+        },
+        card: {
+            type: 'Simple',
+            title: `SessionSpeechlet - ${title}`,
+            content: `SessionSpeechlet - ${output}`,
+        },
+        reprompt: {
+            outputSpeech: {
+                type: 'PlainText',
+                text: repromptText,
+            },
+        },
+        shouldEndSession,
+    };
+}
+
+function buildResponse(sessionAttributes, speechletResponse) {
+    return {
+        version: '1.0',
+        sessionAttributes,
+        response: speechletResponse,
+    };
+}
+
+
+// --------------- Functions that control the skill's behavior -----------------------
+
+function getWelcomeResponse(session, callback) {
+    // If we wanted to initialize the session to have some attributes we could add those here.
+    let sessionAttributes = {};
+    const cardTitle = 'Welcome';
+    const speechOutput = 'Welcome to your host AI created by my friend the Chan man.';
+    const repromptText = null;
+    const shouldEndSession = false;
+    sessionAttributes = createStageAttribute(0);
+    console.log(sessionAttributes);
+
+    callback(sessionAttributes,
+        buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+}
+
+function handleSessionEndRequest(callback) {
+    const cardTitle = 'Session Ended';
+
+    const speechOutput = 'Have a good time!';
+    // const speechOutput = 'Have a good time! Good luck on getting me to do what you want.';
+    // Setting this to true ends the session and exits the skill.
+    const shouldEndSession = true;
+
+    callback({}, buildSpeechletResponse(cardTitle, speechOutput, null, shouldEndSession));
+}
+
+function createGroupMusicTrip(favoriteMusic, stage, bar) {
+    return {
+        favoriteMusic, stage, bar
+    };
+}
+
+function createFavoriteCookingAttributes(favoriteCooking, stage) {
+    return {
+        favoriteCooking, stage
+    };
+}
+
+function createFavoriteMusicAttributes(favoriteMusic, stage) {
+    return {
+        favoriteMusic, stage
+    };
+}
+
+function createStageAttribute(stage){
+    return{
+        stage,
+    };
+}
+
+function handleYes(intent, session, callback){
+    const cardTitle = intent.name;
+    let shouldEndSession = false;
+    let sessionAttributes = {};
+    let speechOutput = '';
+    let repromptText = '';
+    let chefNames = ["Gil", "Aura", "Ailene", "Staci", "Corey", "Tammi", "Jesusita", "Alejandra", "Altagracia", "Allen"];
+    let barNames = ["Club Le Vin Lounge", "Firebelly", "Café Tux Lounge", "Molten Taco", "Surge", "Amazeus", "Chocolate Bondage", "Poulet", "West Blank Bar and Grill", "Armadillo"];
+
+    switch(session.attributes.stage){
+        case 0:
+            speechOutput = 'Huh I did not ask you a question';
+            repromptText = 'Try asking me what to do today';
+            break;
+        case 1:
+            speechOutput = 'Alright sounds good! How about you tell me what type of music or cooking would you like to do.';
+            repromptText = 'Any particular preferences?';
+            sessionAttributes = createStageAttribute(1);
+            break;
+        case 2:
+            let favoriteCookType = session.attributes.favoriteCooking;
+            let foodSensei = chefNames[Math.floor(Math.random() * 10)]
+            speechOutput = `Alrighty! I booked the local ${favoriteCookType} master. Your sensei ${foodSensei} will be here in 2 hours.`;
+            repromptText = `I am excited to see what we can learn from ${foodSensei}`;
+            shouldEndSession = true;
+            break;
+        case 3:
+            let favoriteMusicType = session.attributes.favoriteMusic;
+            let bar = barNames[Math.floor(Math.random() * 10)]
+            speechOutput = `Sweet! I have sent your phone directions to ${bar}. The ${favoriteMusicType} event will happen there at eight o clock. There is another group of Airbnb Travelers who are headed to the event together. Would you like to join them?`;
+            repromptText = `I hope you have a good time at ${bar}.`;
+            sessionAttributes = createGroupMusicTrip(favoriteMusicType, 4, bar);
+            break;
+        case 4:
+            let barWent = session.attributes.bar;
+            speechOutput = `I've notified them and the organizer artificial intelligence Hoppy that you will meet them at ${barWent}!`;
+            repromptText = `I hope you have a good time at ${barWent}.`;
+            shouldEndSession = true;
+            break;
+        case 6:
+            speechOutput = "Alright. I have started writing the review for you. I'll send the final version to your Airbnb Companion before submission. In the meanwhile, I started a bubble bath for you. Enjoy!";
+            repromptText = "Oh yeah I forgot... I started a bubble bath for you. Enjoy!";
+            shouldEndSession = true;
+            break;
+        default:
+            throw new Error('Yes answer to undefined quesiton');
+    }
+    callback(sessionAttributes,
+         buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+}
+
+function handleNo(intent, session, callback){
+    const cardTitle = intent.name;
+    let shouldEndSession = false;
+    let sessionAttributes = {};
+    let speechOutput = '';
+    let repromptText = '';
+
+    switch(session.attributes.stage){
+        case 0:
+            speechOutput = 'Huh I did not ask you a question';
+            repromptText = 'Try asking me what to do today';
+            break;
+        case 1:
+            speechOutput = 'Okay then. Today is still a wonderful day outside. Enjoy your day! Bye!';
+            repromptText = null;
+            break;
+        case 2:
+            let favoriteCookType = session.attributes.favoriteCooking;
+            speechOutput = `I understand. Would you like me to recommend you some locations that are known for their ${favoriteCookType}?`
+            repromptText = 'Here I will send them to your Airbnb Companion incase you want to visit them some other time.';
+            break;
+        case 3:
+            let favoriteMusicType = session.attributes.favoriteMusic;
+            speechOutput = `I understand. Would you like me to recommend you some local musicians that are known for their ${favoriteMusicType}?`
+            repromptText = 'Here I will send them to your Airbnb Companion incase you want to listen to them some other time.';
+            break;
+        case 4:
+            let bar = session.attributes.bar;
+            speechOutput = `Alright then. I hope you have a good time at ${bar}.`;
+            repromptText = null;
+            shouldEndSession = true;
+            break;
+        case 6:
+            speechOutput = "Alright. I will let you unwind  in peace";
+            repromptText = "Oh yeah I forgot... I started a bubble bath for you. Enjoy!";
+            shouldEndSession = true;
+            break;
+        default:
+            throw new Error('No answer to undefined quesiton');
+    }
+    callback(sessionAttributes,
+         buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+}
+
+function handleReview(intent, session, callback){
+    const cardTitle = intent.name;
+    let shouldEndSession = false;
+    let sessionAttributes = {};
+    let speechOutput = 'Welcome back! So how was it?';
+    let repromptText = 'How did it go?';
+    sessionAttributes = createStageAttribute(5);
+
+    callback(sessionAttributes,
+         buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+}
+
+function writeReview( session, callback){
+    const cardTitle = "Review Writing";
+    let shouldEndSession = false;
+    let sessionAttributes = {};
+    let speechOutput = 'Thank you for the details! Would you like me to write a review for you based on your story?';
+    let repromptText = 'Would you like me to write the review for you?';
+    sessionAttributes = createStageAttribute(6);
+
+    callback(sessionAttributes,
+         buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+}
+
+function whatToDo(intent, session, callback) {
+    const cardTitle = intent.name;
+    let sessionAttributes = {};
+    const shouldEndSession = false;
+    const speechOutput = 'Your Airbnb Companion has informed me you love music and cooking.' + " Would you like to do either today?";
+    const repromptText = "Would you like Music or Cooking?";
+
+    sessionAttributes = createStageAttribute(1);
+    callback(sessionAttributes,
+         buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+}
+
+function letsHireChef(intent, session, callback) {
+    const cardTitle = intent.name;
+    const favCooking = intent.slots.Cooking;
+    let sessionAttributes = {};
+    const shouldEndSession = false;
+    let speechOutput = '';
+    let repromptText = '';
+
+    if (favCooking) {
+        const favoriteCooking = favCooking.value;
+        sessionAttributes = createFavoriteCookingAttributes(favoriteCooking,2);
+        speechOutput = `That's awesome! I've always wanted to know more about ${favoriteCooking}. ` + ` I can book you a local ${favoriteCooking} master to show you his craft!` +
+            " How does that sound?";
+        repromptText = `Would you like me to book the local ${favoriteCooking} master?`;
+    } else {
+        speechOutput = "I'm not quite sure what you said. Please come closer and tell me again";
+        repromptText = 'Please say it again';
+    }
+
+    callback(sessionAttributes,
+         buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+}
+
+function letsGoToTheClub(intent, session, callback) {
+    const cardTitle = intent.name;
+    const favoriteMusicSlot = intent.slots.Music;
+    let sessionAttributes = {};
+    const shouldEndSession = false;
+    let speechOutput = '';
+    let repromptText = '';
+
+    if (favoriteMusicSlot) {
+        const favoriteMusic = favoriteMusicSlot.value;
+        sessionAttributes = createFavoriteMusicAttributes(favoriteMusic,3);
+        speechOutput = `That's awesome! I've always love playing ${favoriteMusic}.` + ` I found a bar nearby that has a ${favoriteMusic} event tonight!` +
+            " Would you like directions?";
+        repromptText = `Would you like directions to the bar playing ${favoriteMusic} tonight?`;
+    } else {
+        speechOutput = "I'm not quite sure what you said. Please come closer and tell me again";
+        repromptText = 'Please say it again';
+    }
+    callback(sessionAttributes,
+         buildSpeechletResponse(cardTitle, speechOutput, repromptText, shouldEndSession));
+}
+
+
+// --------------- Events -----------------------
+
+/**
+ * Called when the session starts.
+ */
+function onSessionStarted(sessionStartedRequest, session) {
+    console.log(`onSessionStarted requestId=${sessionStartedRequest.requestId}, sessionId=${session.sessionId}`);
+}
+
+/**
+ * Called when the user launches the skill without specifying what they want.
+ */
+function onLaunch(launchRequest, session, callback) {
+    console.log(`onLaunch requestId=${launchRequest.requestId}, sessionId=${session.sessionId}`);
+
+    // Dispatch to your skill's launch.
+    getWelcomeResponse(session, callback);
+}
+
+/**
+ * Called when the user specifies an intent for this skill.
+ */
+function onIntent(intentRequest, session, callback) {
+    console.log(`onIntent requestId=${intentRequest.requestId}, sessionId=${session.sessionId}`);
+
+    const intent = intentRequest.intent;
+    const intentName = intentRequest.intent.name;
+    console.log(intent.name);
+    if (session.attributes.stage && session.attributes.stage === 5){
+        writeReview(session, callback);
+    }
+    else {
+        // Switch Statement
+        switch(intentName){
+            case 'AMAZON.HelpIntent':
+                getWelcomeResponse(session, callback);
+                break;
+            case 'Cookinglover':
+                letsHireChef(intent, session, callback);
+                break;  
+            case 'Musiclover':
+                letsGoToTheClub(intent, session, callback);
+                break;
+            case 'Bored':
+                whatToDo(intent, session, callback);
+                break;
+            case 'Review':
+                handleReview(intent, session, callback);
+                break;
+            case 'AMAZON.YesIntent':
+                handleYes(intent, session, callback);
+                break;                
+            case 'AMAZON.NoIntent':
+                handleNo(intent, session, callback);
+                break;    
+            case 'AMAZON.StopIntent':
+                handleSessionEndRequest(callback);
+                break;   
+            default:
+                throw new Error('Invalid intent');
+        }
+    }
+}
+
+function onStage(stageRequest, session, callback) {
+    console.log(`onIntent requestId=${stageRequest.requestId}, sessionId=${session.sessionId}`);
+    writeReview(session, callback);
+}
+
+/**
+ * Called when the user ends the session.
+ * Is not called when the skill returns shouldEndSession=true.
+ */
+function onSessionEnded(sessionEndedRequest, session) {
+    console.log(`onSessionEnded requestId=${sessionEndedRequest.requestId}, sessionId=${session.sessionId}`);
+    // Add cleanup logic here
+}
+
+
+// --------------- Main handler -----------------------
+
+// Route the incoming request based on type (LaunchRequest, IntentRequest,
+// etc.) The JSON body of the request is provided in the event parameter.
+exports.handler = (event, context, callback) => {
+    try {
+        console.log(`event.session.application.applicationId=${event.session.application.applicationId}`);
+
+        /**
+         * Uncomment this if statement and populate with your skill's application ID to
+         * prevent someone else from configuring a skill that sends requests to this function.
+         */
+        /*
+        if (event.session.application.applicationId !== 'amzn1.echo-sdk-ams.app.[unique-value-here]') {
+             callback('Invalid Application ID');
+        }
+        */
+        console.log(event);
+        if (event.session.new) {
+            onSessionStarted({ requestId: event.request.requestId }, event.session);
+        }
+
+        if (event.request.type === 'LaunchRequest') {
+            onLaunch(event.request,
+                event.session,
+                (sessionAttributes, speechletResponse) => {
+                    callback(null, buildResponse(sessionAttributes, speechletResponse));
+                });
+        // } else if (event.session.attributes.stage && event.session.attributes.stage === 5){
+        //     onStage(event.request,
+        //         event.session,
+        //         (sessionAttributes, speechletResponse) => {
+        //             callback(null, buildResponse(sessionAttributes, speechletResponse));
+        //         });
+        } else if (event.request.type === 'IntentRequest') {
+            console.log(event);
+            onIntent(event.request,
+                event.session,
+                (sessionAttributes, speechletResponse) => {
+                    callback(null, buildResponse(sessionAttributes, speechletResponse));
+                });
+        } else if (event.request.type === 'SessionEndedRequest') {
+            onSessionEnded(event.request, event.session);
+            callback();
+        }
+    } catch (err) {
+        callback(err);
+    }
+};
