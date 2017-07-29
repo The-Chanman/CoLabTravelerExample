@@ -1,0 +1,49 @@
+{
+  "intents": [
+    {
+      "slots": [
+        {
+          "name": "Cooking",
+          "type": "COOKING"
+        }
+      ],
+      "intent": "Cookinglover"
+    },
+    {
+      "slots": [
+        {
+          "name": "dateslot",
+          "type": "AMAZON.DATE"
+        }
+      ],
+      "intent": "Bored"
+    },
+    {
+      "slots": [
+        {
+          "name": "Music",
+          "type": "MUSIC"
+        }
+      ],
+      "intent": "Musiclover"
+    },
+    {
+      "intent": "Review"
+    },
+    {
+      "intent": "AMAZON.HelpIntent"
+    },
+    {
+      "intent": "AMAZON.CancelIntent"
+    },
+    {
+      "intent": "AMAZON.StopIntent"
+    },
+    {
+      "intent": "AMAZON.YesIntent"
+    },
+    {
+      "intent": "AMAZON.NoIntent"
+    }
+  ]
+}
